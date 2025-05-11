@@ -1,0 +1,146 @@
+你的代码中有几个潜在问题，以下是一些建议和改进：
+
+### 1. **`memset` 的问题**：
+
+```cpp
+memset(read_buffer, 0, sizeof(read_buffer));
+memset(write_buffer, 0, sizeof(write_buffer));
+```
+
+* `sizeof(read_buffer)` 和 `sizeof(write_buffer)` 会返回指针的大小，而不是缓冲区的实际大小。由于 `read_buffer` 和 `write_buffer` 是通过 `malloc` 动态分配的内存，`sizeof(read_buffer)` 会返回指针的大小（通常是 4 或 8 字节），而你应该使用 `READ_BUF_SIZE` 和 `WRITE_BUF_SIZE` 来初始化缓冲区，而不是 `sizeof`。
+
+**修正：**
+
+```cpp
+memset(read_buffer, 0, READ_BUF_SIZE);
+memset(write_buffer, 0, WRITE_BUF_SIZE);
+```
+
+### 2. **`recv` 的问题**：
+
+```cpp
+recv(client_socket, read_buffer, sizeof(read_buffer), 0);
+```
+
+* `recv` 的第三个参数应是缓冲区的实际大小，即 `READ_BUF_SIZE`。但是 `sizeof(read_buffer)` 会返回指针的大小，不是你分配的内存大小，所以你应该将它改为 `READ_BUF_SIZE`。
+
+**修正：**
+
+```cpp
+recv(client_socket, read_buffer, READ_BUF_SIZE, 0);
+```
+
+### 3. **`strcat` 可能导致的缓冲区溢出**：
+
+```cpp
+char data_dir[2048] = "./server_data/";
+strcat(data_dir, read_buffer);
+```
+
+* 如果 `read_buffer` 包含的文件名过长，`strcat` 可能会导致缓冲区溢出，尤其是当文件名较长时。为了防止溢出，应该确保 `data_dir` 足够大并且加上适当的边界检查。
+
+**修正：**
+你可以使用 `snprintf` 或 `strncat` 来确保不发生溢出：
+
+```cpp
+char data_dir[2048] = "./server_data/";
+snprintf(data_dir + strlen(data_dir), sizeof(data_dir) - strlen(data_dir), "%s", read_buffer);
+```
+
+或者：
+
+```cpp
+strncpy(data_dir + strlen(data_dir), read_buffer, sizeof(data_dir) - strlen(data_dir) - 1);
+data_dir[sizeof(data_dir) - 1] = '\0';  // 确保以 NULL 结尾
+```
+
+### 4. **文件打开模式错误**：
+
+```cpp
+FILE* file = Fopen(data_dir, "rb");
+```
+
+* `Fopen` 是一个不标准的函数，通常使用的是 `fopen`。如果你定义了 `Fopen`，请确保它是有效的。一般情况下，应该使用 `fopen` 函数。
+
+**修正：**
+
+```cpp
+FILE* file = fopen(data_dir, "rb");
+```
+
+### 5. **返回值和错误处理**：
+
+* 代码中没有错误处理。如果文件没有找到或无法打开，需要检查 `fopen` 的返回值是否为 `NULL`，并进行适当的错误处理。
+
+**修正：**
+
+```cpp
+if (file == NULL) {
+    perror("Error opening file");
+    return -1;
+}
+```
+
+### 完整的改进后的代码：
+
+```cpp
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#define READ_BUF_SIZE 1024
+#define WRITE_BUF_SIZE 1024
+
+char* parse_file_name(char* file_name) {
+    // 这里可以实现解析文件名的逻辑
+    return file_name;
+}
+
+int main() {
+    char* read_buffer = (char *)malloc(READ_BUF_SIZE * sizeof(char));
+    char* write_buffer = (char *)malloc(WRITE_BUF_SIZE * sizeof(char));
+    
+    if (read_buffer == NULL || write_buffer == NULL) {
+        perror("Memory allocation failed");
+        return -1;
+    }
+    
+    memset(read_buffer, 0, READ_BUF_SIZE);
+    memset(write_buffer, 0, WRITE_BUF_SIZE);
+
+    int client_socket;  // 假设你已经获取到client_socket
+    recv(client_socket, read_buffer, READ_BUF_SIZE, 0);
+    printf("Received file name: %s\n", read_buffer);
+
+    char* file_type = parse_file_name(read_buffer);
+
+    char data_dir[2048] = "./server_data/";
+    snprintf(data_dir + strlen(data_dir), sizeof(data_dir) - strlen(data_dir), "%s", read_buffer);
+
+    printf("Finding file: %s\n", data_dir);
+
+    FILE* file = fopen(data_dir, "rb");
+    if (file == NULL) {
+        perror("Error opening file");
+        free(read_buffer);
+        free(write_buffer);
+        return -1;
+    }
+
+    // 这里可以继续处理文件读取等操作
+
+    fclose(file);
+    free(read_buffer);
+    free(write_buffer);
+
+    return 0;
+}
+```
+
+### 总结：
+
+1. 使用正确的缓冲区大小，避免指针大小错误。
+2. 使用 `snprintf` 或 `strncpy` 防止 `strcat` 导致的缓冲区溢出。
+3. 正确使用 `fopen`，并进行错误处理。
+4. 处理内存分配失败和文件操作失败的情况。

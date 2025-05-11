@@ -1,0 +1,33 @@
+.
+├── Makefile
+├── client (client 可执行程序)
+├── client.cpp
+├── client_data
+├── myfunc.h
+├── project_arch.txt
+├── server (server 可执行程序)
+├── server.cpp
+└── server_data(file 20)
+    ├── file0.txt
+    ├── file1.txt
+    ├── file10.txt
+    ├── file11.txt
+    ├── file12.txt
+    ├── file13.txt
+    ├── file14.txt
+    ├── file15.txt
+    ├── file16.txt
+    ├── file17.txt
+    ├── file18.txt
+    ├── file19.txt
+    ├── file2.txt
+    ├── file20.txt
+    ├── file3.txt
+    ├── file4.txt
+    ├── file5.txt
+    ├── file6.txt
+    ├── file7.txt
+    ├── file8.txt
+    └── file9.txt
+
+2 directories, 28 files

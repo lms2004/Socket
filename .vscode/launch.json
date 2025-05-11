@@ -1,0 +1,32 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/client",  // The client program should be located at the root of your workspace
+            "args": ["127.0.0.1" ,"8080"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",  // Make sure to set the current working directory to the workspace folder
+            "environment": [],
+            "externalConsole": false,  // Set to true if you prefer an external console window
+            "MIMode": "gdb",  // Set the debugger mode to gdb
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}
