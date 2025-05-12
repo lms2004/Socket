@@ -81,4 +81,13 @@ int decrypt_data(const unsigned char* ciphertext, unsigned char* plaintext, EVP_
 }
 
 
+void xor_encrypt_decrypt(char *data, size_t data_len, unsigned char *key, size_t key_len) {
+    size_t key_index = 0;
+    for (size_t i = 0; i < data_len; i++) {
+        data[i] ^= key[key_index];
+        key_index = (key_index + 1) % key_len;
+    }
+}
+
+
 #endif // CRYPTO_UTILS_H

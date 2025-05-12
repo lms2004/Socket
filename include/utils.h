@@ -58,34 +58,3 @@ char* parse_file_name(char* file_name) {
     return NULL;
 }
 
-void Send_mymsg(long fileSize, FILE* file, char* file_type, int client_socket, char* read_buffer, char* write_buffer) {
-    /* 大文件分片读取发送 */
-    printf("--------------------------\n");
-    printf("File size: %ld\n", fileSize);
-    printf("File type: %s\n", file_type);
-    printf("Sending file...\n");
-    while(fileSize > 0){
-        size_t bytes_to_read = (fileSize < WRITE_BUF_SIZE) ? fileSize : WRITE_BUF_SIZE;
-        
-        // 从文件读取数据
-        size_t bytes_read = Fread(write_buffer, sizeof(char), bytes_to_read, file);
-        if(bytes_read == 0){
-            break;
-        }
-        
-        /* 发送消息 */
-        msghdr *__message = Create_msghdr((char**)&write_buffer, &bytes_read, 1);
-        Sendmsg(client_socket, __message, 0);
-        free(__message->msg_iov);
-        free(__message);
-
-        // 清空缓存
-        memset(read_buffer, 0, READ_BUF_SIZE);
-        memset(write_buffer, 0, WRITE_BUF_SIZE);
-
-        // 更新剩余文件大小
-        fileSize -= bytes_read;
-    }
-    printf("--------------------------\n");
-}
-
