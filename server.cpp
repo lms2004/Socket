@@ -1,7 +1,5 @@
 #include "myfunc.h"
-
-#define READ_BUF_SIZE 8192
-#define WRITE_BUF_SIZE 8192
+#include "utils.h"
 
 
 int main(int argc, char** argv) {
@@ -24,15 +22,25 @@ int main(int argc, char** argv) {
     
     printf("Client connected: %s:%d\n", inet_ntoa(server_addr.sin_addr), ntohs(server_addr.sin_port));
 
-
+    /* 分配读写缓冲区 */
     char* read_buffer = (char *)malloc(READ_BUF_SIZE*sizeof(char));
     char* write_buffer = (char *)malloc(WRITE_BUF_SIZE*sizeof(char));
     memset(read_buffer, 0, READ_BUF_SIZE);
     memset(write_buffer, 0, WRITE_BUF_SIZE);
 
+    // // SSL 握手
+    // while(1){
+    //     if(Recv(client_socket, read_buffer, READ_BUF_SIZE, 0) > 0) {
+    //         if(strcmp(read_buffer, "hello") == 0) {
+    //             Send(client_socket, "hello", strlen("hello"), 0);
+    //             break;
+    //         }
+    //     }
+    // }
+
 
     /* 接收文件名 */
-    recv(client_socket, read_buffer, READ_BUF_SIZE, 0);
+    Recv(client_socket, read_buffer, READ_BUF_SIZE, 0);
 
     printf("Received file name: %s\n", read_buffer);
 
@@ -55,33 +63,7 @@ int main(int argc, char** argv) {
         fseek(file, 0, SEEK_SET);
     }
 
-    /* 大文件分片读取发送 */
-    printf("--------------------------\n");
-    printf("File size: %ld\n", fileSize);
-    printf("File type: %s\n", file_type);
-    printf("Sending file...\n");
-    while(fileSize > 0){
-        size_t bytes_to_read = (fileSize < WRITE_BUF_SIZE) ? fileSize : WRITE_BUF_SIZE;
-        
-        // 从文件读取数据
-        size_t bytes_read = Fread(write_buffer, sizeof(char), bytes_to_read, file);
-        if(bytes_read == 0){
-            break;
-        }
-        
-        /* 发送消息 */
-        msghdr *__message = Create_msghdr(write_buffer, bytes_read); 
-        Sendmsg(client_socket, __message, 0);
-        free(__message);
-
-        // 清空缓存
-        memset(read_buffer, 0, sizeof(read_buffer));
-        memset(write_buffer, 0, sizeof(write_buffer));
-
-        // 更新剩余文件大小
-        fileSize -= bytes_read;
-    }
-    printf("--------------------------\n");
+    Send_mymsg(fileSize, file, file_type, client_socket, read_buffer, write_buffer);
 
     /* 关闭文件和套接字 */
     fclose(file);
@@ -91,5 +73,5 @@ int main(int argc, char** argv) {
     printf("File sent successfully!\n");
     memset(read_buffer, 0, sizeof(read_buffer));
     memset(write_buffer, 0, sizeof(write_buffer));
-
 }
+

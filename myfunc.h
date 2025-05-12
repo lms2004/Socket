@@ -1,3 +1,6 @@
+#ifndef MYFUNC_H
+#define MYFUNC_H
+
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <stdio.h>
@@ -9,10 +12,20 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+
+// Error handling
+
 int Socket(int domain, int type, int protocol) {
     int n;
     if((n = socket(domain, type, protocol)) < 0) {
         perror("Error creating socket");
+        exit(EXIT_FAILURE);
+    }
+
+    // 服务器可立即重启，无需等待 TIME_WAIT 超时
+    int reuse = 1;
+    if (setsockopt(n, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0) {
+        perror("setsockopt failed");
         exit(EXIT_FAILURE);
     }
     return n;
@@ -82,38 +95,6 @@ FILE* Fopen(const char *path, const char *mode) {
     return file;
 }
 
-
-
-msghdr *Create_msghdr(char* message, size_t message_len) { 
-    msghdr *__message = (msghdr *)malloc(sizeof(msghdr));
-    memset(__message, 0, sizeof(msghdr));
-
-    // 数据缓冲区
-    __message->msg_iov = (iovec *)malloc(sizeof(iovec));
-    __message->msg_iov->iov_base = message;
-    __message->msg_iov->iov_len = message_len; 
-    __message->msg_iovlen = 1;
-
-    // 控制信息保持为空
-    __message->msg_control = NULL;
-    __message->msg_controllen = 0;
-    __message->msg_flags = 0;
-
-    return __message;
-}
-
-// 客户端接收专用初始化
-void InitRecvMsg(struct msghdr *msg, char *buffer, size_t buf_size) {
-    struct iovec *iov = (iovec *)malloc(sizeof(struct iovec));
-    iov->iov_base = buffer;
-    iov->iov_len = buf_size;
-    
-    memset(msg, 0, sizeof(*msg));
-    msg->msg_iov = iov;
-    msg->msg_iovlen = 1;
-}
-
-
 int Connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen) {
     int n;
     if((n = connect(sockfd, addr, addrlen)) < 0) {
@@ -141,15 +122,6 @@ int Write(int fd, const void *buf, size_t count) {
     return n;
 }
 
-char* parse_file_name(char* file_name) {
-    for(char* p = file_name; *p != '\0'; p++) {
-        if(*p == '.') {
-            return p + 1;
-        }
-    }
-    return NULL;
-}
-
 size_t Fread(void *ptr, size_t size, size_t nmemb, FILE *stream) {
     size_t n = fread(ptr, size, nmemb, stream);
     if (n == 0 && ferror(stream)) {
@@ -158,4 +130,8 @@ size_t Fread(void *ptr, size_t size, size_t nmemb, FILE *stream) {
     }
     return n;
 }
+
+
+
+#endif
 
