@@ -1,10 +1,14 @@
 # 忽略 server_key 目录下的所有 .key 和 .crt 文件
 server_key/*.key
 server_key/*.crt
+server_key/*.csr
+server_key/*.pem
 
 # 忽略 client_key 目录下的所有 .key 和 .crt 文件
 client_key/*.key
 client_key/*.crt
+client_key/*.csr
+client_key/*.pem
 
 server
 client

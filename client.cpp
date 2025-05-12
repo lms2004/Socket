@@ -83,8 +83,6 @@ int main(int argc, char** argv) {
         // (3) 生成 MS ，发送 EMS
         unsigned char MS[32];
         generate_random_bytes(MS, 32);
-        server_hello.serverCertificate
-
     }
     
 
