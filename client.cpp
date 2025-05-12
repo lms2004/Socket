@@ -8,7 +8,7 @@
 #define SSL_HMAC 2
 
 int main(int argc, char** argv) {
-    if(argc < 3){
+    if(argc < 4){
         printf("Usage: %s <IP> <File> <mode>\n", argv[0]);
         return 1;
     }
@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     
     /* SSL 握手 */
     printf("Client started with SSL handshake...\n");
-    if(strcmp(argv[3], "SSL") == 0){
+    if(strcmp(argv[3], "ssl") == 0){
         // (1) 发送客户端 Hello
         ClientHello client_hello;
         client_hello.cipherSuitesLength = 3;
@@ -55,19 +55,26 @@ int main(int argc, char** argv) {
         printf("    Received ServerCertificate: %d btyes\n", server_hello.serverCertificateLength);
         close(file);
 
-        char buffer[64] = {0};
         FILE *fp = popen("openssl verify -CAfile ./client_key/root.crt ./client_key/server.crt", "r");
-        fread(buffer, sizeof(char), 64, fp);
+        fread(read_buffer , sizeof(char), READ_BUF_SIZE, fp);
 
-        if(strstr(buffer, "OK") != NULL){
+        if(strstr(read_buffer , "OK") != NULL){
             printf("    Server certificate is successfully verified.\n");
         }else{
             printf("    Server certificate verification failed.\n");
             return 1;
         }
+        memset(read_buffer, 0, READ_BUF_SIZE);
         pclose(fp);
 
+        /* 加载公钥 */
+        FILE *fp2 = popen("openssl x509 -in ./client_key/server.crt -pubkey -noout ", "r");
+        fread(read_buffer, sizeof(char), READ_BUF_SIZE, fp2);
+        BIO* bio = BIO_new_mem_buf(read_buffer, -1);
+        EVP_PKEY* publicKey = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
         
+        printf("    Loaded public key.\n");
+
 
         if(fork() == 0){ // 删除临时对比的crt文件
             const char *args[] = { "rm", "./client_key/server.crt", nullptr };
@@ -77,12 +84,20 @@ int main(int argc, char** argv) {
             return 1;
         }
         printf("    delete server.crt\n");
-        printf("SSL handshake completed.\n");
-        /* 完成验证 */
+
 
         // (3) 生成 MS ，发送 EMS
         unsigned char MS[32];
         generate_random_bytes(MS, 32);
+        printf("    Generated MS: %s\n", MS);
+
+        unsigned char* encrypted = (unsigned char*)malloc(256);
+        encrypt_data(MS, encrypted, publicKey);
+        send(client_socket, encrypted, 256, 0);
+        printf("    Sent encrypted MS\n");
+
+        return 0;
+        printf("SSL handshake completed.\n");
     }
     
 

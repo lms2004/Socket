@@ -1,6 +1,7 @@
 #ifndef CRYPTO_UTILS_H
 #define CRYPTO_UTILS_H
 
+
 #include <openssl/aes.h>
 #include <openssl/rsa.h>
 #include <openssl/pem.h>
@@ -57,7 +58,21 @@ void generate_random_bytes(unsigned char* buffer, int len){
     }
 }
 
+void encrypt_data(unsigned char* MS, unsigned char* encrypted, EVP_PKEY* publicKey) {
+    EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new(publicKey, NULL);
+    if (!ctx) {
+        perror("EVP_PKEY_CTX_new failed");
+    }
 
+    if (EVP_PKEY_encrypt_init(ctx) <= 0) {
+        perror("EVP_PKEY_encrypt_init failed");
+    }
+
+    size_t encrypted_len = 0;
+    if (EVP_PKEY_encrypt(ctx, encrypted, &encrypted_len, MS, sizeof(MS)) <= 0) {
+        perror("EVP_PKEY_encrypt failed");
+    }
+}
 
 
 #endif // CRYPTO_UTILS_H

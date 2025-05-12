@@ -31,7 +31,7 @@ int main(int argc, char** argv) {
     // SSL 握手
     printf("Server started with SSL handshake...\n");
 
-    if(strcmp(argv[1], "SSL") == 0){
+    if(strcmp(argv[1], "ssl") == 0){
         /* (1) 接收 Client Hello 并发送 Server Hello */
         ClientHello rev_client_hello;
         int recv_len = Recv(client_socket, &rev_client_hello, sizeof(rev_client_hello), 0);
@@ -49,6 +49,23 @@ int main(int argc, char** argv) {
 
         send(client_socket, &server_hello, sizeof(server_hello), 0);
         printf("    Sent ServerHello\n");
+
+
+
+        /* 加载公钥 */
+        FILE *fp2 = popen("openssl x509 -in ./server_key/server.crt -pubkey -noout ", "r");
+        fread(read_buffer, sizeof(char), READ_BUF_SIZE, fp2);
+        BIO* bio = BIO_new_mem_buf(read_buffer, -1);
+        EVP_PKEY* publicKey = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
+        if (!publicKey) {
+            std::cerr << "Error loading public key." << std::endl;
+            return 1;
+        }
+        
+        printf("    Loaded public key.\n");
+
+
+
         return 0;
     }
 
