@@ -110,6 +110,11 @@ int main(int argc, char** argv) {
         if(bytes_read == 0){
             break;
         }
+        /*
+        完善扩展，
+            可以增加 计算 HMAC 放在 write_buffer 前
+            MS 导出 E_A, E_B, M_A, M_B 用于加密数据，计算HMAC
+        */ 
 
         xor_encrypt_decrypt(write_buffer, bytes_read, MS, sizeof(MS));
         
