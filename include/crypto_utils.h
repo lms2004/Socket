@@ -58,20 +58,26 @@ void generate_random_bytes(unsigned char* buffer, int len){
     }
 }
 
-void encrypt_data(unsigned char* MS, unsigned char* encrypted, EVP_PKEY* publicKey) {
-    EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new(publicKey, NULL);
-    if (!ctx) {
-        perror("EVP_PKEY_CTX_new failed");
-    }
+// 客户端：公钥加密
+int encrypt_data(const unsigned char* plaintext, unsigned char* ciphertext, EVP_PKEY* pub_key) {
+    EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new(pub_key, NULL);
+    size_t ciphertext_len;
+    EVP_PKEY_encrypt_init(ctx);
+    EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING); // 设置填充方式
+    EVP_PKEY_encrypt(ctx, ciphertext, &ciphertext_len, plaintext, 32);
+    EVP_PKEY_CTX_free(ctx);
+    return ciphertext_len;
+}
 
-    if (EVP_PKEY_encrypt_init(ctx) <= 0) {
-        perror("EVP_PKEY_encrypt_init failed");
-    }
-
-    size_t encrypted_len = 0;
-    if (EVP_PKEY_encrypt(ctx, encrypted, &encrypted_len, MS, sizeof(MS)) <= 0) {
-        perror("EVP_PKEY_encrypt failed");
-    }
+// 服务器：私钥解密
+int decrypt_data(const unsigned char* ciphertext, unsigned char* plaintext, EVP_PKEY* priv_key) {
+    EVP_PKEY_CTX* ctx = EVP_PKEY_CTX_new(priv_key, NULL);
+    size_t plaintext_len;
+    EVP_PKEY_decrypt_init(ctx);
+    EVP_PKEY_CTX_set_rsa_padding(ctx, RSA_PKCS1_PADDING); // 与客户端填充方式一致
+    EVP_PKEY_decrypt(ctx, plaintext, &plaintext_len, ciphertext, 256); // 假设加密后数据为256字节
+    EVP_PKEY_CTX_free(ctx);
+    return plaintext_len;
 }
 
 

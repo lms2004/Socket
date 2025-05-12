@@ -1,0 +1,65 @@
+如果你可能需要接收多个数据块，那么需要调整 `InitRecvMsg` 函数，以支持多个 `iovec` 结构，这样可以在单个 `msghdr` 中接收多个缓冲区的数据。你可以通过动态分配内存来为多个数据块设置 `iovec` 数组，并设置 `msg_iovlen` 来指示有多少个数据块。
+
+### 修改后的代码：
+
+```c
+// 接收多个数据块初始化
+void InitRecvMsg(struct msghdr *msg, char **buffers, size_t *buf_sizes, int num_buffers) {
+    // 分配足够的内存来存储多个 iovec
+    struct iovec *iov = (iovec *)malloc(num_buffers * sizeof(struct iovec));
+    
+    // 设置每个 iovec 的 base 和 length
+    for (int i = 0; i < num_buffers; i++) {
+        iov[i].iov_base = buffers[i];
+        iov[i].iov_len = buf_sizes[i];
+    }
+
+    // 清空 msghdr 结构体
+    memset(msg, 0, sizeof(*msg));
+
+    // 设置 msghdr 的 iovec 和 iovec 长度
+    msg->msg_iov = iov;
+    msg->msg_iovlen = num_buffers;
+
+    // 可以根据需要进一步扩展，如设置 msg_control, msg_controllen, msg_flags 等
+}
+```
+
+### 说明：
+
+1. **内存分配**：
+
+   * `iov` 是一个大小为 `num_buffers` 的 `iovec` 数组，你根据 `num_buffers` 来分配足够的内存。
+
+2. **循环初始化 `iovec`**：
+
+   * 使用 `for` 循环，将每个 `buffers[i]` 和 `buf_sizes[i]` 设置到 `iov[i].iov_base` 和 `iov[i].iov_len`，这样每个缓冲区就有了自己的数据和大小。
+
+3. **`msg_iovlen` 设置**：
+
+   * `msg->msg_iovlen` 被设置为 `num_buffers`，表示这次消息有多少个数据块需要接收。
+
+4. **内存管理**：
+
+   * 确保你在不需要 `msghdr` 时，释放 `iov` 和 `msghdr` 分配的内存，以避免内存泄漏。
+
+### 使用示例：
+
+假设你需要接收 3 个不同大小的数据块：
+
+```c
+// 初始化三个缓冲区
+char buffer1[256], buffer2[512], buffer3[1024];
+
+// 缓冲区数组
+char *buffers[] = { buffer1, buffer2, buffer3 };
+size_t buf_sizes[] = { sizeof(buffer1), sizeof(buffer2), sizeof(buffer3) };
+
+// msghdr 结构体
+struct msghdr msg;
+
+// 初始化接收消息
+InitRecvMsg(&msg, buffers, buf_sizes, 3);
+```
+
+在这种情况下，`msg` 将包含 3 个缓冲区的接收设置，每个缓冲区可以接收不同大小的数据。通过这种方式，你就可以接收多个数据块。

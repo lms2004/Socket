@@ -87,20 +87,17 @@ int main(int argc, char** argv) {
 
 
         // (3) 生成 MS ，发送 EMS
-        unsigned char MS[32];
+        unsigned char MS[32] = {0};
         generate_random_bytes(MS, 32);
-        printf("    Generated MS: %s\n", MS);
 
         unsigned char* encrypted = (unsigned char*)malloc(256);
         encrypt_data(MS, encrypted, publicKey);
         send(client_socket, encrypted, 256, 0);
         printf("    Sent encrypted MS\n");
 
-        return 0;
         printf("SSL handshake completed.\n");
     }
     
-
 
     /* SSL 握手完成 */
 

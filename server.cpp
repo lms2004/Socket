@@ -51,22 +51,26 @@ int main(int argc, char** argv) {
         printf("    Sent ServerHello\n");
 
 
+        // (2) 接收加密的 MS 
+        unsigned char encrypted[256];
+        recv(client_socket, encrypted, 256, 0);
 
-        /* 加载公钥 */
-        FILE *fp2 = popen("openssl x509 -in ./server_key/server.crt -pubkey -noout ", "r");
-        fread(read_buffer, sizeof(char), READ_BUF_SIZE, fp2);
-        BIO* bio = BIO_new_mem_buf(read_buffer, -1);
-        EVP_PKEY* publicKey = PEM_read_bio_PUBKEY(bio, NULL, NULL, NULL);
-        if (!publicKey) {
-            std::cerr << "Error loading public key." << std::endl;
-            return 1;
+        /* 加载私钥 */
+        FILE* fp2 = fopen("./server_key/server.key", "r");  // 直接用 fopen 读取私钥文件
+        EVP_PKEY* privateKey = PEM_read_PrivateKey(fp2, NULL, NULL, NULL);
+        if (!privateKey) {
+            perror("PEM_read_PrivateKey failed");
         }
-        
-        printf("    Loaded public key.\n");
+        fclose(fp2);
 
+        printf("    Loaded private key.\n");
 
+        /* 解密 MS */
+        unsigned char MS[32] = {0};
+        decrypt_data(encrypted, MS, privateKey); // 使用解密函数
+        printf("    decrypted PMS successfully.\n"); 
 
-        return 0;
+        printf("SSL handshake completed.\n");
     }
 
 
