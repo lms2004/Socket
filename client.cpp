@@ -1,12 +1,15 @@
 #include "myfunc.h"
 #include "utils.h"
+#include "crypto_utils.h"
 
 #define MESSAGE_MAX 4096
-
+#define SSL_RSA 0
+#define SSL_AES 1
+#define SSL_HMAC 2
 
 int main(int argc, char** argv) {
     if(argc < 3){
-        printf("Usage: %s <IP> <File>\n", argv[0]);
+        printf("Usage: %s <IP> <File> <mode>\n", argv[0]);
         return 1;
     }
     int client_socket = Socket(AF_INET, SOCK_STREAM, 0);
@@ -28,8 +31,65 @@ int main(int argc, char** argv) {
     memset(write_buffer, 0, WRITE_BUF_SIZE);
     
     /* SSL 握手 */
-    // ...
+    printf("Client started with SSL handshake...\n");
+    if(strcmp(argv[3], "SSL") == 0){
+        // (1) 发送客户端 Hello
+        ClientHello client_hello;
+        client_hello.cipherSuitesLength = 3;
+        client_hello.cipherSuites[0] = SSL_RSA;
+        client_hello.cipherSuites[1] = SSL_AES;
+        client_hello.cipherSuites[2] = SSL_HMAC;
+        generate_random_bytes(client_hello.clientRandom, 32);
+        send(client_socket, &client_hello, sizeof(client_hello), 0);
+        printf("    Sent ClientHello\n");
 
+        // (2) 接收服务器 Hello
+        ServerHello server_hello;
+        recv(client_socket, &server_hello, sizeof(server_hello), 0);
+        printf("    Received ServerHello\n");
+
+
+        /* 验证服务器证书 */
+        int file = Open("./client_key/server.crt", O_WRONLY | O_CREAT | O_TRUNC, 0666); 
+        Write(file, server_hello.serverCertificate, server_hello.serverCertificateLength);
+        printf("    Received ServerCertificate: %d btyes\n", server_hello.serverCertificateLength);
+        close(file);
+
+        char buffer[64] = {0};
+        FILE *fp = popen("openssl verify -CAfile ./client_key/root.crt ./client_key/server.crt", "r");
+        fread(buffer, sizeof(char), 64, fp);
+
+        if(strstr(buffer, "OK") != NULL){
+            printf("    Server certificate is successfully verified.\n");
+        }else{
+            printf("    Server certificate verification failed.\n");
+            return 1;
+        }
+        pclose(fp);
+
+        
+
+        if(fork() == 0){ // 删除临时对比的crt文件
+            const char *args[] = { "rm", "./client_key/server.crt", nullptr };
+            execv("/bin/rm", const_cast<char *const *>(args));
+            // 如果 execv 返回，说明出错
+            std::cerr << "Exec failed.\n";
+            return 1;
+        }
+        printf("    delete server.crt\n");
+        printf("SSL handshake completed.\n");
+        /* 完成验证 */
+
+        // (3) 生成 MS ，发送 EMS
+        unsigned char MS[32];
+        generate_random_bytes(MS, 32);
+        server_hello.serverCertificate
+
+    }
+    
+
+
+    /* SSL 握手完成 */
 
     /* 发送文件名 */
     strcpy(write_buffer, argv[2]);

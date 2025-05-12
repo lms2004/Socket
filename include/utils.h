@@ -80,8 +80,8 @@ void Send_mymsg(long fileSize, FILE* file, char* file_type, int client_socket, c
         free(__message);
 
         // 清空缓存
-        memset(read_buffer, 0, sizeof(read_buffer));
-        memset(write_buffer, 0, sizeof(write_buffer));
+        memset(read_buffer, 0, READ_BUF_SIZE);
+        memset(write_buffer, 0, WRITE_BUF_SIZE);
 
         // 更新剩余文件大小
         fileSize -= bytes_read;

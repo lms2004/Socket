@@ -1,6 +1,6 @@
 #include "myfunc.h"
 #include "utils.h"
-
+#include "crypto_utils.h"
 
 int main(int argc, char** argv) {
     int server_socket = Socket(AF_INET, SOCK_STREAM, 0);
@@ -28,15 +28,29 @@ int main(int argc, char** argv) {
     memset(read_buffer, 0, READ_BUF_SIZE);
     memset(write_buffer, 0, WRITE_BUF_SIZE);
 
-    // // SSL 握手
-    // while(1){
-    //     if(Recv(client_socket, read_buffer, READ_BUF_SIZE, 0) > 0) {
-    //         if(strcmp(read_buffer, "hello") == 0) {
-    //             Send(client_socket, "hello", strlen("hello"), 0);
-    //             break;
-    //         }
-    //     }
-    // }
+    // SSL 握手
+    printf("Server started with SSL handshake...\n");
+
+    if(strcmp(argv[1], "SSL") == 0){
+        /* (1) 接收 Client Hello 并发送 Server Hello */
+        ClientHello rev_client_hello;
+        int recv_len = Recv(client_socket, &rev_client_hello, sizeof(rev_client_hello), 0);
+        printf("    Received ClientHello: %d\n", recv_len);
+
+        // 构造 Server Hello
+        ServerHello server_hello;
+        server_hello.cipherSuitesLength = rev_client_hello.cipherSuitesLength;
+        memcpy(server_hello.cipherSuites, rev_client_hello.cipherSuites, sizeof(rev_client_hello.cipherSuites));
+
+        generate_random_bytes(server_hello.serverRandom, 32); // 生成随机数
+
+        
+        read_certificate(&server_hello); // 填充公钥证书
+
+        send(client_socket, &server_hello, sizeof(server_hello), 0);
+        printf("    Sent ServerHello\n");
+        return 0;
+    }
 
 
     /* 接收文件名 */
@@ -71,7 +85,7 @@ int main(int argc, char** argv) {
     close(server_socket);
 
     printf("File sent successfully!\n");
-    memset(read_buffer, 0, sizeof(read_buffer));
-    memset(write_buffer, 0, sizeof(write_buffer));
+    memset(read_buffer, 0, READ_BUF_SIZE);
+    memset(write_buffer, 0, WRITE_BUF_SIZE);
 }
 
